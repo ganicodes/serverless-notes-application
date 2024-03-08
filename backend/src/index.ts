@@ -1,10 +1,15 @@
-import { Hono } from "hono";
-
+import {
+  createNoteSchema,
+  signinSchema,
+  signupSchema,
+  updateNoteSchema,
+} from "@ganicodes/sna-common";
 import { PrismaClient } from "@prisma/client/edge";
 import { withAccelerate } from "@prisma/extension-accelerate";
+import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { sign, verify } from "hono/jwt";
-import zod from "zod";
+import { logger } from "hono/logger";
 import { toHashPassword, verifyPassword } from "./bcryptConfig";
 
 const app = new Hono<{
@@ -18,7 +23,7 @@ const app = new Hono<{
   };
 }>();
 
-// app.use(logger());
+app.use(logger());
 
 app.use("/api/*", cors());
 
@@ -54,12 +59,6 @@ app.get("/", (c) => {
 
 app.post("/api/signin", async (c) => {
   const prisma = c.get("prisma");
-
-  const signinSchema = zod.object({
-    email: zod.string().email(),
-    password: zod.string(),
-  });
-
   const body = await c.req.json();
 
   const { success } = signinSchema.safeParse(body);
@@ -104,12 +103,6 @@ app.post("/api/signin", async (c) => {
 app.post("/api/signup", async (c) => {
   const prisma = c.get("prisma");
 
-  const signupSchema = zod.object({
-    email: zod.string().email().min(1, "Email cannot be empty"),
-    password: zod.string().min(8, "Atleast 8 charachters"),
-    name: zod.string().min(3, "Name cannot be empty"),
-  });
-
   const body = await c.req.json();
 
   const result = signupSchema.safeParse(body);
@@ -139,6 +132,7 @@ app.post("/api/signup", async (c) => {
       },
     });
     const jwt = await sign({ id: user.id }, c.env.JWT_SECRET);
+    console.log("jwt: ", jwt);
     return c.json({ jwt });
   } catch (e) {
     c.status(500);
@@ -149,13 +143,6 @@ app.post("/api/signup", async (c) => {
 app.post("/api/notes", async (c) => {
   const prisma = c.get("prisma");
   const userId = c.get("userId");
-  const createNoteSchema = zod.object({
-    title: zod
-      .string()
-      .optional()
-      .transform((e) => (e === "" ? undefined : e)),
-    description: zod.string().min(1),
-  });
 
   const body = await c.req.json();
 
@@ -194,73 +181,28 @@ app.get("/api/notes", async (c) => {
   return c.json({ notes });
 });
 
-app.patch("/api/notes", async (c) => {
-  const id = c.req.query("id");
-  const isDeleted = c.req.query("isDeleted");
-  console.log("isDelete: ", isDeleted);
-  const isArchived = c.req.query("isArchived");
-  console.log("isArchived: ", isArchived);
+app.put("/api/notes", async (c) => {
   const prisma = c.get("prisma");
   const userId = c.get("userId");
   const body = await c.req.json();
-  try {
-    let note;
-    // if (isDelete) {
-    //   note = await prisma.note.update({
-    //     where: {
-    //       id: id,
-    //       authorId: userId,
-    //     },
-    //     data: {
-    //       isDeleted: true,
-    //     },
-    //   });
-    //   return c.json({ message: "Task sent to bin successfully", data: note });
-    // }
 
-    // if (isArchived) {
-    //   note = await prisma.note.update({
-    //     where: {
-    //       id: id,
-    //       authorId: userId,
-    //     },
-    //     data: {
-    //       isArchived: true,
-    //     },
-    //   });
-    //   return c.json({ message: "Task is archived successfully", data: note });
-    // }
-
-    note = await prisma.note.update({
-      where: {
-        id: id,
-        authorId: userId,
-      },
-      data: body,
-    });
-    return c.json({ message: "Note updated successfully", data: note });
-  } catch (error) {
-    c.status(500);
-    return c.json({ error: error });
+  const result = updateNoteSchema.safeParse(body);
+  if (!result.success) {
+    c.status(403);
+    return c.json({ message: "Insufficient Data", error: result.error });
   }
-});
 
-app.put("/api/notes", async (c) => {
-  const id = c.req.query("id");
-  const isDelete = c.req.query("delete");
-  console.log("isDelete: ", isDelete);
-  const prisma = c.get("prisma");
-  const userId = c.get("userId");
   const note = await prisma.note.update({
     where: {
-      id: id,
+      id: body.id,
       authorId: userId,
     },
     data: {
-      isDeleted: true,
+      title: body.title,
+      description: body.description,
     },
   });
-  return c.json({ message: "Note created successfully", data: note });
+  return c.json({ message: "Note updated successfully", data: note });
 });
 
 export default app;
