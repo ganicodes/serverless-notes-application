@@ -30,7 +30,7 @@ app.use("/api/*", async (c, next) => {
   await next();
 });
 
-app.use("/api/tasks/*", async (c, next) => {
+app.use("/api/notes/*", async (c, next) => {
   // get the header
   // verify the header
   // if the header is correct, we can proceed
@@ -146,10 +146,10 @@ app.post("/api/signup", async (c) => {
   }
 });
 
-app.post("/api/tasks", async (c) => {
+app.post("/api/notes", async (c) => {
   const prisma = c.get("prisma");
   const userId = c.get("userId");
-  const createTaskSchema = zod.object({
+  const createNoteSchema = zod.object({
     title: zod
       .string()
       .optional()
@@ -159,14 +159,14 @@ app.post("/api/tasks", async (c) => {
 
   const body = await c.req.json();
 
-  const result = createTaskSchema.safeParse(body);
+  const result = createNoteSchema.safeParse(body);
   if (!result.success) {
     c.status(403);
     return c.json({ message: "Insufficient Data", error: result.error });
   }
 
   try {
-    const task = await prisma.task.create({
+    const note = await prisma.note.create({
       data: {
         title: body.title || "",
         description: body.description,
@@ -175,26 +175,26 @@ app.post("/api/tasks", async (c) => {
     });
 
     c.status(200);
-    return c.json({ message: "Task created successfully", data: task });
+    return c.json({ message: "Note created successfully", data: note });
   } catch (error) {
     c.status(500);
     return c.json({ error: error });
   }
 });
 
-app.get("/api/tasks", async (c) => {
+app.get("/api/notes", async (c) => {
   const id = c.get("userId");
   const prisma = c.get("prisma");
-  const tasks = await prisma.task.findMany({
+  const notes = await prisma.note.findMany({
     where: {
       authorId: id,
       isDeleted: false,
     },
   });
-  return c.json({ tasks });
+  return c.json({ notes });
 });
 
-app.patch("/api/tasks", async (c) => {
+app.patch("/api/notes", async (c) => {
   const id = c.req.query("id");
   const isDeleted = c.req.query("isDeleted");
   console.log("isDelete: ", isDeleted);
@@ -204,9 +204,9 @@ app.patch("/api/tasks", async (c) => {
   const userId = c.get("userId");
   const body = await c.req.json();
   try {
-    let task;
+    let note;
     // if (isDelete) {
-    //   task = await prisma.task.update({
+    //   note = await prisma.note.update({
     //     where: {
     //       id: id,
     //       authorId: userId,
@@ -215,11 +215,11 @@ app.patch("/api/tasks", async (c) => {
     //       isDeleted: true,
     //     },
     //   });
-    //   return c.json({ message: "Task sent to bin successfully", data: task });
+    //   return c.json({ message: "Task sent to bin successfully", data: note });
     // }
 
     // if (isArchived) {
-    //   task = await prisma.task.update({
+    //   note = await prisma.note.update({
     //     where: {
     //       id: id,
     //       authorId: userId,
@@ -228,30 +228,30 @@ app.patch("/api/tasks", async (c) => {
     //       isArchived: true,
     //     },
     //   });
-    //   return c.json({ message: "Task is archived successfully", data: task });
+    //   return c.json({ message: "Task is archived successfully", data: note });
     // }
 
-    task = await prisma.task.update({
+    note = await prisma.note.update({
       where: {
         id: id,
         authorId: userId,
       },
       data: body,
     });
-    return c.json({ message: "Task updated successfully", data: task });
+    return c.json({ message: "Note updated successfully", data: note });
   } catch (error) {
     c.status(500);
     return c.json({ error: error });
   }
 });
 
-app.put("/api/tasks", async (c) => {
+app.put("/api/notes", async (c) => {
   const id = c.req.query("id");
   const isDelete = c.req.query("delete");
   console.log("isDelete: ", isDelete);
   const prisma = c.get("prisma");
   const userId = c.get("userId");
-  const task = await prisma.task.update({
+  const note = await prisma.note.update({
     where: {
       id: id,
       authorId: userId,
@@ -260,7 +260,7 @@ app.put("/api/tasks", async (c) => {
       isDeleted: true,
     },
   });
-  return c.json({ message: "Task created successfully", data: task });
+  return c.json({ message: "Note created successfully", data: note });
 });
 
 export default app;
