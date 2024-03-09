@@ -9,6 +9,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { axiosInstance } from "@/lib/axios";
 import { SigninSchema, signinSchema } from "@ganicodes/sna-common";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -23,10 +24,16 @@ function Signin() {
     },
   });
 
-  function onSubmit(values: SigninSchema) {
-    // Do something with the form values.
-    // ✅ This will be type-safe and validated.
+  async function onSubmit(values: SigninSchema) {
     console.log(values);
+    try {
+      const res = await axiosInstance.post("/signin", values);
+      const { jwt } = res.data;
+      localStorage.setItem("token", jwt);
+      navigate("/notes");
+    } catch (error) {
+      console.log(error);
+    }
   }
   return (
     <div className="absolute left-1/2 top-1/2 mx-auto w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-none border border-border bg-white p-4 shadow-input dark:bg-black md:rounded-2xl md:p-8">

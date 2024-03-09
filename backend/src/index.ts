@@ -25,7 +25,13 @@ const app = new Hono<{
 
 app.use(logger());
 
-app.use("/api/*", cors());
+app.use(
+  "/api/*",
+  cors({
+    origin: ["http://localhost:5173", "https://notesapp.ganicodes.in"],
+    credentials: true,
+  })
+);
 
 app.use("/api/*", async (c, next) => {
   const prisma = new PrismaClient({

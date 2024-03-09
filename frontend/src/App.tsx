@@ -1,5 +1,4 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
-import { ModeToggle } from "./components/mode-toggle";
 import LandingPage from "./pages/LandingPage";
 import Notes from "./pages/Notes";
 import Signin from "./pages/Signin";
@@ -9,9 +8,6 @@ function App() {
   return (
     <>
       <BrowserRouter>
-        <div className="container">
-          <ModeToggle />
-        </div>
         <Routes>
           <Route path="/signup" element={<Signup />} />
           <Route path="/signin" element={<Signin />} />
